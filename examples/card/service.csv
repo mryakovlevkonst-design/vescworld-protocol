@@ -1,0 +1,7 @@
+# service device=DEMO-000001 fw=1.0.0
+name,group,enabled,km,moving_h,cal_h,limit_km,limit_h,by_moving,used_pct
+BRAKE PADS F,BRAKES,1,1650,40.2,2210.0,1800,0,1,92
+TIRE REAR,WHEELS,1,2100,61.0,2210.0,4000,0,1,52
+BRAKE FLUID,BRAKES,1,2100,61.0,7010.0,0,8760,0,80
+CHAIN,DRIVE,0,0,0.0,0.0,2000,0,1,0
+BEARINGS,MOTOR,1,2100,61.0,2210.0,0,0,1,-1
