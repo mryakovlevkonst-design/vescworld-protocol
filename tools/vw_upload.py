@@ -58,7 +58,7 @@ def multipart(fields, files):
 
 
 def kind_of(path):
-    for prefix, kind in (("/trips/", "trip"), ("/gps/", "gps"), ("/blackbox/", "bb"), ("/drag/", "drag")):
+    for prefix, kind in (("/trips/", "trip"), ("/gps/", "gps"), ("/ride/", "ride"), ("/blackbox/", "bb"), ("/drag/", "drag")):
         if path.startswith(prefix):
             return kind
     return {"/drag.csv": "dragsum", "/service.csv": "service"}.get(path, "file")
@@ -75,8 +75,8 @@ def scan(root):
             p = os.path.join(d, n)
             st = os.stat(p)
             out["/" + os.path.relpath(p, root).replace(os.sep, "/")] = (p, st.st_size, int(st.st_mtime))
-    # trips before their GPS tracks, like the display does
-    order = {"trip": 0, "service": 1, "gps": 2, "dragsum": 3, "drag": 4, "bb": 5}
+    # trips before their GPS tracks and logs, like the display does
+    order = {"trip": 0, "service": 1, "ride": 2, "gps": 2, "dragsum": 3, "drag": 4, "bb": 5}
     return dict(sorted(out.items(), key=lambda kv: (order.get(kind_of(kv[0]), 9), kv[0])))
 
 

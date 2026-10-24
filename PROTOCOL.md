@@ -46,6 +46,7 @@ The **path** is what the file is called on the device, card-style, from the root
 |---|---|---|
 | `/trips/<stem>.txt` | `trip` | a ride (section 5.1) |
 | `/gps/<stem>.csv` | `gps` | the GPS track of the ride with the **same stem** (5.2) |
+| `/ride/<stem>.csv` | `ride` | per-second controller telemetry of the ride with the **same stem** (5.6) |
 | `/blackbox/<stem>.csv` | `bb` | a black box: charts around an event (5.3) |
 | `/drag.csv` | `dragsum` | drag runs: 0-60, 100 m, 201 m (5.4) |
 | `/service.csv` | `service` | consumables wear (5.5) |
@@ -201,6 +202,33 @@ BRAKE PADS F,BRAKES,1,1650,40.2,2210.0,1800,0,1,92
 kind; `by_moving=1` - the hours limit counts moving hours, otherwise calendar
 hours; `used_pct` - wear in percent of the nearest limit, `-1` = no limit.
 Send it again whenever it changes.
+
+### 5.6 Ride telemetry - `/ride/<stem>.csv`
+
+[Example](examples/card/ride/20261024_1432_r0123.csv). Optional; gives a ride
+its speed/power, temperature and voltage/current charts, GPS or not.
+Header comment, column line, then one row a second while the vehicle moves or
+draws current:
+
+```
+# vw:1 ride device=DEMO-000001 stem=20261024_1432_r0123 fw=1.0.0 rate_hz=1
+s,utc,kph,volt,bat_a,mot_a,t_esc,t_mot,duty,thr,brk
+13,1792841526,2.0,52.4,17.5,31.9,28,25,0.04,0.66,0.00
+```
+
+| Column | Meaning |
+|---|---|
+| `s` | seconds since the device powered up; a gap = standing still |
+| `utc` | unix seconds, `0` while the device has no clock |
+| `kph` | speed, average over the second |
+| `volt` | battery voltage |
+| `bat_a`, `mot_a` | battery and motor current, all controllers summed; negative = regen |
+| `t_esc`, `t_mot` | controller and motor temperature, °C, the hottest controller |
+| `duty`, `thr`, `brk` | duty cycle, throttle and brake, 0…1 |
+
+Power is `volt × bat_a`. Write the file as the ride goes (append), so a pulled
+plug loses at most the last rows; a cut last line is skipped. The stem must
+equal the ride's stem; a log without a ride file becomes a ride by itself.
 
 ## 6. Owner side
 
