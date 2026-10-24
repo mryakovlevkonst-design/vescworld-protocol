@@ -40,6 +40,12 @@ A device that only writes `/trips/<stem>.txt` with `start`, `distance_km`,
 line already shows up with its rides, stats and achievements. Everything else
 adds screens: the track adds the map, the black box adds charts.
 
+## Where Telegram is blocked
+
+`relay/vercel/` is a ready Bot API relay with a one-click Vercel deploy: the
+device sends to the relay's address instead of `api.telegram.org`, the rest of
+the protocol is unchanged.
+
 ## Questions, new fields
 
 Open an issue. New keys and columns that old readers can ignore stay within
