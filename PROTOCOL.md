@@ -48,7 +48,7 @@ The **path** is what the file is called on the device, card-style, from the root
 | `/gps/<stem>.csv` | `gps` | the GPS track of the ride with the **same stem** (5.2) |
 | `/ride/<stem>.csv` | `ride` | per-second controller telemetry of the ride with the **same stem** (5.6) |
 | `/blackbox/<stem>.csv` | `bb` | a black box: charts around an event (5.3) |
-| `/drag.csv` | `dragsum` | drag runs: 0-60, 100 m, 201 m (5.4) |
+| `/drag.csv` | `dragsum` | drag runs: speed targets, 100 m, 201 m, 402 m (5.4) |
 | `/service.csv` | `service` | consumables wear (5.5) |
 | `/drag/…`, `/vesc/…`, anything else | `drag`, `vesc`, `file` | stored, not parsed |
 
@@ -177,18 +177,55 @@ t_ms,speed_kph,voltage,bat_a,mot_a,temp_esc,temp_mot,duty,throttle,brake,fault,s
 
 ### 5.4 Drag runs - `/drag.csv`
 
-No header, `;`-separated, one run per line, appended:
+No header, `;`-separated, one run per line, appended. Times are seconds from
+the start of the run, `0` = not reached; unknown values are empty fields.
+The line has two forms.
+
+**Three speed targets** (MLTRA 3.5"; MLTRA 4.3" up to 1.3.6-rc25):
 
 ```
 runNo;t_cut0;t_cut1;t_cut2;t_100m;kph_100m;t_201m;kph_201m;max_w;max_a;slip_pct
 1;2.10;3.85;0;8.10;62.0;12.40;66.5;9850;182;4.1
 ```
 
-Times in seconds from the start of the run; 0 = not reached. `t_cut0..2` -
-the three speed targets set on the device (MLTRA defaults: 0-30, 0-50,
-0-100 km/h; the line does not say which were set, so readers should prefer the
-distance marks `t_100m` / `t_201m` for comparing riders). `max_w` - peak
-power, W; `slip_pct` - wheel slip estimate.
+**Five speed targets** (MLTRA 4.3" from 1.3.6-rc26): two more times after
+`t_cut2`, the same seven values, then a tail. One line in the file, wrapped
+here:
+
+```
+runNo;t_cut0;t_cut1;t_cut2;t_cut3;t_cut4;t_100m;kph_100m;t_201m;kph_201m;max_w;max_a;slip_pct;
+    src;peak_g;dh_run;slope_pct;dh_c0;dh_c1;dh_c2;dh_c3;dh_c4;dh_c5;dh_c6;down_mask;<13 device fields>
+    [;t_402m;kph_402m;dh_c7;<1 device field>]
+6;2.31;3.70;5.56;7.41;9.26;8.16;88;11.75;105;9850;182;2.2;WHEEL+IMU;0.39;0.0;0.0;0.0;0.0;0.0;0.0;0.0;0.0;0.0;0;1;0;;none;1.000;;;;;;;;255;18.65;105;0.0;
+```
+
+**Telling them apart:** in the five-target form field 13, counting from 0, is
+the word `src`; a three-target line has 11 fields (old ones 12, the last a
+stray number). Check this before taking any value by position: a reader
+written for the three-target form finds the fourth speed target's time in its
+`t_100m` and the 100 m time in its `t_201m` (@vescworldbot did until
+2026-11-10).
+
+- `t_cut0..` - the speed targets set on the device (defaults: MLTRA 3.5"
+  0-30, 0-50, 0-100 km/h; MLTRA 4.3" 0-25, 0-40, 0-60, 0-80, 0-100). The line
+  does not say which were set, so readers should prefer the distance marks
+  for comparing riders.
+- `t_100m`, `t_201m`, `t_402m` - 100 m, an eighth of a mile (201.168 m) and a
+  quarter (402.336 m); `kph_...` - the speed there. The 402 m group is written
+  from 1.3.6-rc28; older lines end after the device fields.
+- `max_w` - peak power, W; `max_a` - peak current, A; `slip_pct` - wheel slip
+  estimate.
+- `src` - what the run was timed with: `WHEEL`, `GPS`, `IMU`, `GPS+IMU`,
+  `PHONE+IMU`, `WHEEL+IMU`, `WHEEL+GPS`.
+- `peak_g` - peak longitudinal acceleration, g. `dh_run` - height change start
+  -> finish, m (+ up); `slope_pct` = `dh_run` / distance, %.
+- `dh_c0..dh_c6` - height from the start at each cut, in the line's order
+  (five speed targets, 100 m, 201 m); `dh_c7` - at 402 m.
+- `down_mask` - bit n: cut n (same order; 402 m is bit 7) was downhill and is
+  not a record.
+- The 13 fields after `down_mask`, and the last field of the 402 m group, are
+  the device's own: a reader counts them and does not interpret them, another
+  device writes them empty.
 
 ### 5.5 Consumables - `/service.csv`
 
@@ -249,3 +286,7 @@ The token gives @vescworldbot read access to that one chat; `/forget` in
 `vw:1` is this document. Additions that old readers can ignore (new keys,
 columns, kinds) keep `vw:1`; an incompatible change will be `vw:2`, and
 @vescworldbot will keep reading `vw:1`.
+
+One change so far was not such an addition: the five-target form of the drag
+line (5.4, 2026-11) moved the distance fields. It stays `vw:1` because a line
+says by itself which form it is, and @vescworldbot reads both.
